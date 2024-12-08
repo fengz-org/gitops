@@ -1,0 +1,175 @@
+---
+    name: Run checkov and upload results
+
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: read
+      id-token: write
+      issues: write
+      discussions: read
+      packages: read
+      pages: read
+      pull-requests: write
+      repository-projects: read
+      security-events: read
+      statuses: write
+
+    on:
+      workflow_call:
+        inputs:
+          OUTPUT_DIR:
+            required: false
+            type: string
+            default: '.checkov/config.yaml'
+          SOFT_FAIL:
+            required: false
+            type: string
+            default: 'false'
+          CHECKOV_BRANCH:
+            required: false
+            type: string
+            default: 'main'
+          FAIL_ON_SECURITY_ISSUES:
+            required: false
+            type: string
+            default: 'true'
+          FRAMEWORK:
+            required: false
+            type: string
+            default: 'all'
+
+        secrets:
+          CHECKOV_CONFIG_CLONE_APP_ID:
+            required: true
+          CHECKOV_CONFIG_CLONE_PRIVATE_KEY:
+            required: true
+
+    jobs:
+      checkov:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: check if config already exists and delete
+            run: |
+              files=(
+                ".checkov.yaml"
+              )
+
+              for file in "${files[@]}"; do
+                  if [ -e "$file" ]; then
+                      if rm -rf "$file" 2>/dev/null; then
+                          echo "Successfully deleted $file"
+                      else
+                          echo "Failed to delete $file"
+                        exit 1
+                      fi
+                  fi
+              done
+
+          - name: Generate token from GitHub App
+            id: generate-token
+            uses: tibdex/github-app-token@v2
+            with:
+              app_id: ${{ secrets.CHECKOV_CONFIG_CLONE_APP_ID }}
+              private_key: ${{ secrets.CHECKOV_CONFIG_CLONE_PRIVATE_KEY }}
+
+          - name: Download config file
+            run: |
+              mkdir -p .checkov
+              echo "Downloading Checkov configuration..."
+              curl -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
+                    -H "Accept: application/vnd.github.v3.raw" \
+                    -L "https://raw.githubusercontent.com/stepchange-org/sc-infra-checkov-config/${{ inputs.CHECKOV_BRANCH}}/.checkov.yaml" \
+                    -o ${{ inputs.OUTPUT_DIR }}
+
+              echo "📄 Downloaded configuration contents:"
+              echo "----------------------------------------"
+              cat ${{ inputs.OUTPUT_DIR }}
+              echo "----------------------------------------"
+
+              if [ -s ${{ inputs.OUTPUT_DIR }} ]; then
+                echo "✅ Configuration file downloaded successfully"
+                echo "📊 File size: $(ls -lh .checkov/config.yaml | awk '{print $5}')"
+                echo "🔍 Number of lines: $(wc -l < .checkov/config.yaml)"
+              else
+                echo "❌ Configuration file is empty or failed to download"
+                exit 1
+              fi
+
+          - name: Run Checkov scan
+            uses: bridgecrewio/checkov-action@master
+            id: checkov
+            continue-on-error: true
+            with:
+              directory: .
+              config_file: ${{ inputs.OUTPUT_DIR }}
+              soft_fail: ${{ inputs.SOFT_FAIL }}
+              framework: ${{inputs.FRAMEWORK}}
+              output_format: cli,json
+              output_file_path: checkov_results.txt,checkov_results.json
+
+          - name: Extract failed checks from Checkov
+            run: |
+              jq '.results.failed_checks' checkov_results.json > checkov_failed.json
+
+          - name: Upload Checkov Failures to Summary
+            if: failure() || success()
+            run: |
+              FAILURES=$(jq length checkov_failed.json)
+              if [ "$FAILURES" -gt 0 ]; then
+                echo "## Checkov Failures" >> $GITHUB_STEP_SUMMARY
+                jq -r '.[] | "- File: \(.file_path) \n  - Check ID: \(.check_id) \n  - Severity: \(.severity) \n  - Message: \(.check_result.result)\n"' checkov_failed.json >> $GITHUB_STEP_SUMMARY
+              else
+                echo "No failures found." >> $GITHUB_STEP_SUMMARY
+              fi
+
+          - name: Generate Summary File
+            if: always()
+            run: |
+              # Create summary file
+              {
+                echo "# Checkov Security Scan Results"
+                echo "Run Date: $(date)"
+                echo ""
+
+                if [ "${{ steps.checkov.outcome }}" == "failure" ]; then
+                  echo "## ❌ Scan Status: Failed"
+                else
+                  echo "## ✅ Scan Status: Passed"
+                fi
+
+                echo ""
+                echo "## Scan Results"
+                cat checkov_results.txt
+
+              } > scan_summary.md
+
+          - name: Upload full checkov outout
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: checkov-output-${{ github.sha }}
+              path: |
+                checkov_results.txt
+              retention-days: 5
+
+          - name: Upload summary artifact
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: checkov-summary-${{ github.sha }}
+              path: |
+                scan_summary.md
+              retention-days: 5
+
+          # Fail the workflow if security issues were found
+          - name: Check scan results
+            if: always()
+            run: |
+              if [ "${{ steps.checkov.outcome }}" == "failure" ]&& [ "${{ inputs.FAIL_ON_SECURITY_ISSUES }}" == "true" ]; then
+                echo "Security issues were found in the scan"
+                exit 1
+              fi

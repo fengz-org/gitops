@@ -1,0 +1,17 @@
+---
+extends: default
+
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+
+ignore: ''
+
+rules:
+  indentation: disable
+  empty-lines: disable
+  document-start:
+    level: error
+  line-length:
+    max: 800
+    level: warning
