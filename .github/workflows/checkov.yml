@@ -40,11 +40,11 @@
             type: string
             default: 'all'
 
-        secrets:
-          CHECKOV_CONFIG_CLONE_APP_ID:
-            required: true
-          CHECKOV_CONFIG_CLONE_PRIVATE_KEY:
-            required: true
+        # secrets:
+        #   CHECKOV_CONFIG_CLONE_APP_ID:
+        #     required: true
+        #   CHECKOV_CONFIG_CLONE_PRIVATE_KEY:
+        #     required: true
 
     jobs:
       checkov:

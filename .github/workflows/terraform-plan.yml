@@ -1,0 +1,177 @@
+---
+
+    name: Terraform Plan
+
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: read
+      id-token: write
+      issues: write
+      discussions: read
+      packages: read
+      pages: read
+      pull-requests: write
+      repository-projects: read
+      security-events: read
+      statuses: write
+
+    on:
+      workflow_call:
+        inputs:
+          src_directory:
+            required: true
+            type: string
+          terraform-version:
+            required: false
+            type: string
+            default: 'latest'
+          aws-region:
+            required: false
+            type: string
+            default: 'eu-west-1'
+          init-cmd:
+            required: false
+            type: string
+          create-netrc:
+            required: false
+            default: 'false'
+            type: string
+          download-artifact:
+            required: false
+            type: string
+            default: ''
+          setup-cmd:
+            required: false
+            type: string
+            default: ''
+
+        secrets:
+          AWS_ROLE_ARN:
+            required: true
+          PAT_SECRET:
+            required: false
+          GH_USER:
+            required: false
+
+        outputs:
+          plan_exitcode:
+            description: "The exit code of terraform plan"
+            value: ${{ jobs.plan.outputs.plan_exitcode }}
+
+    jobs:
+      plan:
+        runs-on: ubuntu-latest
+        outputs:
+          plan_exitcode: ${{ steps.plan.outputs.exitcode }}
+
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+            aws-region: ${{ inputs.aws-region }}
+
+        - name: Create netrc file
+          if: ${{ inputs.create-netrc == 'true' }}
+          run: |
+            echo "machine github.com
+            login ${{ secrets.GH_USER }}
+            password ${{ secrets.PAT_SECRET }}" > ~/.netrc
+
+            chmod 600 ~/.netrc
+          continue-on-error: false
+
+        - name: Download Artifact
+          if: ${{ inputs.download-artifact != '' }}
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ inputs.download-artifact }}
+
+        - name: Run Setup Command
+          if: ${{ inputs.setup-cmd != '' }}
+          run: ${{ inputs.setup-cmd }}
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ inputs.terraform-version }}
+
+        - name: Terraform Init
+          id: init
+          run: |
+            terraform init ${{ inputs.init-cmd }}
+          working-directory: ${{ inputs.src_directory }}
+
+        - name: Terraform Validate
+          id: validate
+          run: |
+            terraform validate
+          working-directory: ${{ inputs.src_directory }}
+          continue-on-error: false
+
+        - name: Terraform Plan
+          id: plan
+          run: |
+            terraform plan -out=tfplan || exitcode=$?
+            terraform show -no-color tfplan > tfplan.txt
+            exit $exitcode
+          working-directory: ${{ inputs.src_directory }}
+          continue-on-error: false
+
+        - name: Upload Terraform Plan
+          uses: actions/upload-artifact@v4
+          with:
+            name: tfplan
+            path: ${{ inputs.src_directory }}/tfplan
+            retention-days: 5
+
+        - name: Upload Plan Summary
+          uses: actions/upload-artifact@v4
+          with:
+            name: tfplan-summary
+            path: ${{ inputs.src_directory }}/tfplan.txt
+            retention-days: 5
+
+        - name: Upload Terraform Plan to Job Summary
+          if: always() # Always run to upload plan
+          run: |
+            echo '### Terraform Plan' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat tfplan.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+        - name: Add Plan to PR Comment
+          uses: actions/github-script@v7
+          if: github.event_name == 'pull_request'
+          with:
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            script: |
+              const fs = require('fs');
+              const planOutput = fs.readFileSync('${{ inputs.src_directory }}/tfplan.txt', 'utf8');
+              const output = `#### Terraform Validation 🤖 \`${{ steps.validate.outcome }}\`
+              #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
+
+              <details><summary>Show Plan</summary>
+
+              \`\`\`terraform
+              ${planOutput}
+              \`\`\`
+
+              </details>
+
+              *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+
+        - name: Clean up
+          run: rm tfplan.txt

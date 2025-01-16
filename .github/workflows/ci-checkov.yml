@@ -32,9 +32,9 @@
         with:
           FAIL_ON_SECURITY_ISSUES: 'true'
           FRAMEWORK: 'terraform'
-        secrets:
-          CHECKOV_CONFIG_CLONE_APP_ID: ${{ secrets.SEMANTIC_RELEASE_BOT_APP_ID }}
-          CHECKOV_CONFIG_CLONE_PRIVATE_KEY: ${{ secrets.SEMANTIC_RELEASE_BOT_PRIVATE_KEY }}
+        # secrets:
+        #   CHECKOV_CONFIG_CLONE_APP_ID: ${{ secrets.SEMANTIC_RELEASE_BOT_APP_ID }}
+        #   CHECKOV_CONFIG_CLONE_PRIVATE_KEY: ${{ secrets.SEMANTIC_RELEASE_BOT_PRIVATE_KEY }}
       build:
         name: Build
         needs: [checkov]
