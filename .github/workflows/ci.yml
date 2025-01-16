@@ -7,20 +7,20 @@
 
 
     permissions:
-      actions: read
+      actions: write
       attestations: read
-      checks: read
-      contents: read
+      checks: write
+      contents: write
       deployments: read
-      id-token: none
-      issues: read
+      id-token: write
+      issues: write
       discussions: read
       packages: read
       pages: read
-      pull-requests: read
+      pull-requests: write
       repository-projects: read
       security-events: read
-      statuses: read
+      statuses: write
 
     jobs:
       test:
