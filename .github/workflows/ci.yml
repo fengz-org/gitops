@@ -35,7 +35,7 @@
       checkov:
         name: IaC security scan
         needs: [test]
-        uses: fengzhu59/gitops-practice/.github/workflows/checkov.yml@vmain
+        uses: fengzhu59/gitops-practice/.github/workflows/checkov.yml@main
         with:
           FAIL_ON_SECURITY_ISSUES: 'true'
           FRAMEWORK: 'terraform'
