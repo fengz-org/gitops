@@ -12,7 +12,7 @@
       checks: write
       contents: write
       deployments: read
-      id-token: write
+      id-token: none
       issues: write
       discussions: read
       packages: read
