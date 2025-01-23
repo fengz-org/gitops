@@ -1,0 +1,10 @@
+---
+directory:
+  - ./infrastructure
+
+framework:
+  - terraform
+
+# initial ignore, to be reviewed monthly with Security Lead
+skip-check:
+  - CKV_TF_1       # reduces readability by replacing a human-readable version number with a commit hash
