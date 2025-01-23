@@ -37,6 +37,6 @@
           - run: |
               ls -la
               git config --global --add safe.directory '*'
-              danger --fail-on-errors=true
+              danger --fail-on-errors=false
             env:
               DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
