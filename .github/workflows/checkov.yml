@@ -50,54 +50,54 @@
       checkov:
         runs-on: ubuntu-latest
         steps:
-          - uses: actions/checkout@v4
+          # - uses: actions/checkout@v4
 
-          - name: check if config already exists and delete
-            run: |
-              files=(
-                ".checkov.yaml"
-              )
+          # - name: check if config already exists and delete
+          #   run: |
+          #     files=(
+          #       ".checkov.yaml"
+          #     )
 
-              for file in "${files[@]}"; do
-                  if [ -e "$file" ]; then
-                      if rm -rf "$file" 2>/dev/null; then
-                          echo "Successfully deleted $file"
-                      else
-                          echo "Failed to delete $file"
-                        exit 1
-                      fi
-                  fi
-              done
+          #     for file in "${files[@]}"; do
+          #         if [ -e "$file" ]; then
+          #             if rm -rf "$file" 2>/dev/null; then
+          #                 echo "Successfully deleted $file"
+          #             else
+          #                 echo "Failed to delete $file"
+          #               exit 1
+          #             fi
+          #         fi
+          #     done
 
-          - name: Generate token from GitHub App
-            id: generate-token
-            uses: tibdex/github-app-token@v2
-            with:
-              app_id: ${{ secrets.CHECKOV_CONFIG_CLONE_APP_ID }}
-              private_key: ${{ secrets.CHECKOV_CONFIG_CLONE_PRIVATE_KEY }}
+          # - name: Generate token from GitHub App
+          #   id: generate-token
+          #   uses: tibdex/github-app-token@v2
+          #   with:
+          #     app_id: ${{ secrets.CHECKOV_CONFIG_CLONE_APP_ID }}
+          #     private_key: ${{ secrets.CHECKOV_CONFIG_CLONE_PRIVATE_KEY }}
 
-          - name: Download config file
-            run: |
-              mkdir -p .checkov
-              echo "Downloading Checkov configuration..."
-              curl -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
-                    -H "Accept: application/vnd.github.v3.raw" \
-                    -L "https://raw.githubusercontent.com/stepchange-org/sc-infra-checkov-config/${{ inputs.CHECKOV_BRANCH}}/.checkov.yaml" \
-                    -o ${{ inputs.OUTPUT_DIR }}
+          # - name: Download config file
+          #   run: |
+          #     mkdir -p .checkov
+          #     echo "Downloading Checkov configuration..."
+          #     curl -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
+          #           -H "Accept: application/vnd.github.v3.raw" \
+          #           -L "https://raw.githubusercontent.com/stepchange-org/sc-infra-checkov-config/${{ inputs.CHECKOV_BRANCH}}/.checkov.yaml" \
+          #           -o ${{ inputs.OUTPUT_DIR }}
 
-              echo "📄 Downloaded configuration contents:"
-              echo "----------------------------------------"
-              cat ${{ inputs.OUTPUT_DIR }}
-              echo "----------------------------------------"
+          #     echo "📄 Downloaded configuration contents:"
+          #     echo "----------------------------------------"
+          #     cat ${{ inputs.OUTPUT_DIR }}
+          #     echo "----------------------------------------"
 
-              if [ -s ${{ inputs.OUTPUT_DIR }} ]; then
-                echo "✅ Configuration file downloaded successfully"
-                echo "📊 File size: $(ls -lh .checkov/config.yaml | awk '{print $5}')"
-                echo "🔍 Number of lines: $(wc -l < .checkov/config.yaml)"
-              else
-                echo "❌ Configuration file is empty or failed to download"
-                exit 1
-              fi
+          #     if [ -s ${{ inputs.OUTPUT_DIR }} ]; then
+          #       echo "✅ Configuration file downloaded successfully"
+          #       echo "📊 File size: $(ls -lh .checkov/config.yaml | awk '{print $5}')"
+          #       echo "🔍 Number of lines: $(wc -l < .checkov/config.yaml)"
+          #     else
+          #       echo "❌ Configuration file is empty or failed to download"
+          #       exit 1
+          #     fi
 
           - name: Run Checkov scan
             uses: bridgecrewio/checkov-action@master
