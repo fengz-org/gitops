@@ -1,6 +1,10 @@
 ---
     name: Danger checks
+<<<<<<< HEAD
         
+=======
+       
+>>>>>>> a55e1ae (fix: update workflow permission)
     on:
       workflow_call:
         inputs:
