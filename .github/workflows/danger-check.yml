@@ -12,21 +12,6 @@
             required: false
             type: string
             default: 'registry.gitlab.com/gitlab-org/gitlab-build-images:danger'
-    
-    permissions:
-      actions: read
-      checks: read
-      contents: read
-      deployments: read
-      id-token: none
-      issues: write
-      discussions: read
-      packages: read
-      pages: read
-      pull-requests: read
-      repository-projects: read
-      security-events: read
-      statuses: read
 
     jobs:
       danger-checks:
@@ -37,6 +22,6 @@
           - run: |
               ls -la
               git config --global --add safe.directory '*'
-              danger --fail-on-errors=false
+              danger --fail-on-errors=true
             env:
               DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
