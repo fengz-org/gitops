@@ -1,6 +1,6 @@
 ---
     name: Danger checks
-        
+      
     on:
       workflow_call:
         inputs:
@@ -13,7 +13,21 @@
             type: string
             default: 'registry.gitlab.com/gitlab-org/gitlab-build-images:danger'
     
-    
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      deployments: read
+      id-token: none
+      issues: read
+      discussions: read
+      packages: read
+      pages: read
+      pull-requests: read
+      repository-projects: read
+      security-events: read
+      statuses: read
+
     jobs:
       danger-checks:
         runs-on: ${{ inputs.runs-on }}
