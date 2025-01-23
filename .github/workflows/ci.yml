@@ -23,16 +23,12 @@
       statuses: read
 
     jobs:
-      test:
-        runs-on: ubuntu-latest
-
-        steps:
-        - name: testing
-          run: |
-            echo "The pipeline is working!"
+      danger_check:
+        name: Danger Check
+        uses: fengz-org/gitops/.github/workflows/danger-check.yml@main
       checkov:
         name: IaC security scan
-        needs: [test]
+        needs: [danger_check]
         uses: fengz-org/gitops/.github/workflows/checkov.yml@main
         with:
           FAIL_ON_SECURITY_ISSUES: 'true'
