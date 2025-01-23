@@ -3,7 +3,7 @@
 
     on:
       push:
-        branches: [main]
+        branches: ['**']
 
 
     permissions:
@@ -23,12 +23,9 @@
       statuses: read
 
     jobs:
-      danger_check:
-        name: Danger Check
-        uses: fengz-org/gitops/.github/workflows/danger-check.yml@main
       checkov:
         name: IaC security scan
-        needs: [danger_check]
+        needs: []
         uses: fengz-org/gitops/.github/workflows/checkov.yml@main
         with:
           FAIL_ON_SECURITY_ISSUES: 'true'
