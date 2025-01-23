@@ -1,3 +1,3 @@
 # gitops-practice
 
-# this is a readme
+# testing auth
