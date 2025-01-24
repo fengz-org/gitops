@@ -16,7 +16,7 @@
         discussions: read
         packages: read
         pages: read
-        pull-requests: read
+        pull-requests: write
         repository-projects: read
         security-events: read
         statuses: write
