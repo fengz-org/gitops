@@ -3,7 +3,7 @@
 
     on:
       push:
-        branches: ['**']
+        branches: ['!main', '**']
 
 
     permissions:
@@ -26,7 +26,7 @@
       checkov:
         name: IaC security scan
         needs: []
-        uses: 'https://github.com/fengz-org/gitops/blob/main/.github/workflows/checkov.yml'
+        uses: fengz-org/gitops/.github/workflows/checkov.yml@main
         with:
           FAIL_ON_SECURITY_ISSUES: 'true'
           FRAMEWORK: 'terraform'

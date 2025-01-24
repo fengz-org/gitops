@@ -24,4 +24,4 @@
     jobs:
       danger_check:
         name: Danger Check
-        uses: fengz-org/gitops/.github/workflows/danger-check.yml@pr-workflow
+        uses: fengz-org/gitops/.github/workflows/danger-check.yml@main

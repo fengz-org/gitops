@@ -1,123 +1,123 @@
-# ---
-#     name: Run checkov and upload results
+---
+    name: Run checkov and upload results
 
-#     permissions:
-#       actions: read
-#       checks: read
-#       contents: read
-#       deployments: read
-#       id-token: none
-#       issues: read
-#       discussions: read
-#       packages: read
-#       pages: read
-#       pull-requests: read
-#       repository-projects: read
-#       security-events: read
-#       statuses: read
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      deployments: read
+      id-token: none
+      issues: read
+      discussions: read
+      packages: read
+      pages: read
+      pull-requests: read
+      repository-projects: read
+      security-events: read
+      statuses: read
 
-#     on:
-#       workflow_call:
-#         inputs:
-#           OUTPUT_DIR:
-#             required: false
-#             type: string
-#             default: '.checkov.yaml'
-#           SOFT_FAIL:
-#             required: false
-#             type: string
-#             default: 'false'
-#           CHECKOV_BRANCH:
-#             required: false
-#             type: string
-#             default: 'main'
-#           FAIL_ON_SECURITY_ISSUES:
-#             required: false
-#             type: string
-#             default: 'true'
-#           FRAMEWORK:
-#             required: false
-#             type: string
-#             default: 'all'
+    on:
+      workflow_call:
+        inputs:
+          OUTPUT_DIR:
+            required: false
+            type: string
+            default: '.checkov.yaml'
+          SOFT_FAIL:
+            required: false
+            type: string
+            default: 'false'
+          CHECKOV_BRANCH:
+            required: false
+            type: string
+            default: 'main'
+          FAIL_ON_SECURITY_ISSUES:
+            required: false
+            type: string
+            default: 'true'
+          FRAMEWORK:
+            required: false
+            type: string
+            default: 'all'
 
-#     jobs:
-#       checkov:
-#         runs-on: ubuntu-latest
-#         steps:
-#           - name: Checkout code
-#             uses: actions/checkout@v4
+    jobs:
+      checkov:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-#           - name: Run Checkov scan
-#             uses: bridgecrewio/checkov-action@master
-#             id: checkov
-#             continue-on-error: true
-#             with:
-#               directory: .
-#               config_file: ${{ inputs.OUTPUT_DIR }}
-#               soft_fail: ${{ inputs.SOFT_FAIL }}
-#               framework: ${{inputs.FRAMEWORK}}
-#               output_format: cli,json
-#               output_file_path: checkov_results.txt,checkov_results.json
+          - name: Run Checkov scan
+            uses: bridgecrewio/checkov-action@master
+            id: checkov
+            continue-on-error: true
+            with:
+              directory: .
+              config_file: ${{ inputs.OUTPUT_DIR }}
+              soft_fail: ${{ inputs.SOFT_FAIL }}
+              framework: ${{inputs.FRAMEWORK}}
+              output_format: cli,json
+              output_file_path: checkov_results.txt,checkov_results.json
 
-#           - name: Extract failed checks from Checkov
-#             run: |
-#               jq '.results.failed_checks' checkov_results.json > checkov_failed.json
+          - name: Extract failed checks from Checkov
+            run: |
+              jq '.results.failed_checks' checkov_results.json > checkov_failed.json
 
-#           - name: Upload Checkov Failures to Summary
-#             if: failure() || success()
-#             run: |
-#               FAILURES=$(jq length checkov_failed.json)
-#               if [ "$FAILURES" -gt 0 ]; then
-#                 echo "## Checkov Failures" >> $GITHUB_STEP_SUMMARY
-#                 jq -r '.[] | "- File: \(.file_path) \n  - Check ID: \(.check_id) \n  - Severity: \(.severity) \n  - Message: \(.check_result.result)\n"' checkov_failed.json >> $GITHUB_STEP_SUMMARY
-#               else
-#                 echo "No failures found." >> $GITHUB_STEP_SUMMARY
-#               fi
+          - name: Upload Checkov Failures to Summary
+            if: failure() || success()
+            run: |
+              FAILURES=$(jq length checkov_failed.json)
+              if [ "$FAILURES" -gt 0 ]; then
+                echo "## Checkov Failures" >> $GITHUB_STEP_SUMMARY
+                jq -r '.[] | "- File: \(.file_path) \n  - Check ID: \(.check_id) \n  - Severity: \(.severity) \n  - Message: \(.check_result.result)\n"' checkov_failed.json >> $GITHUB_STEP_SUMMARY
+              else
+                echo "No failures found." >> $GITHUB_STEP_SUMMARY
+              fi
 
-#           - name: Generate Summary File
-#             if: always()
-#             run: |
-#               # Create summary file
-#               {
-#                 echo "# Checkov Security Scan Results"
-#                 echo "Run Date: $(date)"
-#                 echo ""
+          - name: Generate Summary File
+            if: always()
+            run: |
+              # Create summary file
+              {
+                echo "# Checkov Security Scan Results"
+                echo "Run Date: $(date)"
+                echo ""
 
-#                 if [ "${{ steps.checkov.outcome }}" == "failure" ]; then
-#                   echo "## ❌ Scan Status: Failed"
-#                 else
-#                   echo "## ✅ Scan Status: Passed"
-#                 fi
+                if [ "${{ steps.checkov.outcome }}" == "failure" ]; then
+                  echo "## ❌ Scan Status: Failed"
+                else
+                  echo "## ✅ Scan Status: Passed"
+                fi
 
-#                 echo ""
-#                 echo "## Scan Results"
-#                 cat checkov_results.txt
+                echo ""
+                echo "## Scan Results"
+                cat checkov_results.txt
 
-#               } > scan_summary.md
+              } > scan_summary.md
 
-#           - name: Upload full checkov outout
-#             if: always()
-#             uses: actions/upload-artifact@v4
-#             with:
-#               name: checkov-output-${{ github.sha }}
-#               path: |
-#                 checkov_results.txt
-#               retention-days: 5
+          - name: Upload full checkov outout
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: checkov-output-${{ github.sha }}
+              path: |
+                checkov_results.txt
+              retention-days: 5
 
-#           - name: Upload summary artifact
-#             if: always()
-#             uses: actions/upload-artifact@v4
-#             with:
-#               name: checkov-summary-${{ github.sha }}
-#               path: |
-#                 scan_summary.md
-#               retention-days: 5
+          - name: Upload summary artifact
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: checkov-summary-${{ github.sha }}
+              path: |
+                scan_summary.md
+              retention-days: 5
 
-#           # Fail the workflow if security issues were found
-#           - name: Check scan results
-#             if: always()
-#             run: |
-#               if [ "${{ steps.checkov.outcome }}" == "failure" ]&& [ "${{ inputs.FAIL_ON_SECURITY_ISSUES }}" == "true" ]; then
-#                 echo "Security issues were found in the scan"
-#                 exit 1
-#               fi
+          # Fail the workflow if security issues were found
+          - name: Check scan results
+            if: always()
+            run: |
+              if [ "${{ steps.checkov.outcome }}" == "failure" ]&& [ "${{ inputs.FAIL_ON_SECURITY_ISSUES }}" == "true" ]; then
+                echo "Security issues were found in the scan"
+                exit 1
+              fi
