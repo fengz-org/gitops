@@ -6,10 +6,6 @@
       workflow_dispatch:
 
 
-    permissions:
-        issues: write
-        pull-requests: write
-
     jobs:
       danger_check:
         name: Danger Check
