@@ -1,0 +1,64 @@
+---
+    name: Semantic Release
+    
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: write
+      id-token: write
+      issues: write
+      discussions: write
+      packages: write
+      pages: write
+      pull-requests: write
+      repository-projects: write
+      security-events: write
+      statuses: write
+    
+    on:
+      workflow_call:
+        inputs:
+          node-version:
+            required: false
+            type: number
+            default: 20
+    
+        # secrets:
+        #   semantic-release-bot-app-id:
+        #     required: true
+        #   semantic-release-bot-private-key:
+        #       required: true
+    
+    
+    jobs:
+      release:
+        runs-on: 'ubuntu-latest'
+        if: ${{ !startsWith(github.event.head_commit.message, 'chore') }}
+        steps:
+        #   - name: 'Generate token'
+        #     id: generate_token
+        #     uses: tibdex/github-app-token@v1
+        #     with:
+        #       app_id: ${{ secrets.semantic-release-bot-app-id }}
+        #       private_key: ${{ secrets.semantic-release-bot-private-key }}
+          - name: 'Checking out code'
+            uses: actions/checkout@v4
+            # with:
+            #   fetch-depth: 0
+            #   token: ${{ steps.generate_token.outputs.token }}
+          - name: 'Setting up Node'
+            uses: actions/setup-node@v4
+            with:
+              node-version: ${{ inputs.node-version }}
+          - name: release using semantic-release
+            run: |
+              sudo apt-get update
+              sudo apt install bumpversion -y
+              npm install @semantic-release/changelog
+              npm install @semantic-release/exec
+              npm install @semantic-release/git
+              npm install @semantic-release/github
+              npx 'semantic-release@^22.0.12'
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

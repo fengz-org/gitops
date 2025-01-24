@@ -1,0 +1,14 @@
+---
+    name: release
+
+    on:
+        workflow_dispatch:
+        push:
+            branches:
+            - main
+
+    jobs:
+      release:
+        name: semantic release
+        needs: []
+        uses: fengz-org/gitops/.github/workflows/semantic-release.yml@main
